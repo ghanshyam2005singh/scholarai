@@ -1,0 +1,19 @@
+name: PR Title Format Check
+
+on:
+  pull_request:
+    types: [opened, edited, reopened]
+
+jobs:
+  check-title:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prTitle = context.payload.pull_request.title;
+            const valid = /^(fix|feat|docs|add|update):/i.test(prTitle);
+            if (!valid) {
+              throw new Error('PR title must start with fix:, feat:, docs:, add:, or update:');
+            }
