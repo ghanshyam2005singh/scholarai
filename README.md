@@ -1,191 +1,113 @@
 # ScholarAI
-Open-source AI-powered research assistant designed to help students and scientists navigate large volumes of academic literature. Supports paper discovery, summarization, citation exploration, and question answering across research papers. Helps organize knowledge, identify trends, and accelerate literature review workflows.
+
+Open-source AI-powered research assistant by Alpha One Labs.
+Ask research questions, summarise papers, discover literature, and generate reviews —
+all powered by **Cloudflare Workers AI** (`@cf/meta/llama-3.1-8b-instruct`).
 
 ---
 
-## ✨ Features
+## Project Structure
 
-- PDF upload and indexing
-- Retrieval-augmented question answering (RAG)
-- Per-user data isolation (`user_id`)
-- Local vector store with ChromaDB
-- Simple web UI (HTML/CSS/JS)
-- API-first backend (Flask)
-
----
-
-## 🧱 Tech Stack
-
-- **Frontend:** HTML, CSS, JavaScript
-- **Backend:** Flask (Python)
-- **RAG:** LangChain + ChromaDB (local)
-- **LLM:** Google Gemini
-
----
-
-## 📁 Project Structure
-
-```text
-app/
-  server.py              # Flask API + web routes
-  pipeline.py            # Indexing + QA logic
-  templates/
-    index.html           # UI
-  static/
-    style.css
-    app.js
-temp/                    # Temporary uploaded files
+```
+scholarai/
+├── src/
+│   └── worker.py       # Single Python Worker — routing + AI logic
+├── static/
+│   └── index.html      # Full frontend (HTML/CSS/JS, no build step)
+├── wrangler.jsonc       # Cloudflare Workers config
+├── package.json         # npm scripts for Wrangler CLI
+└── README.md
 ```
 
 ---
 
-## 🚀 Quick Start (Linux)
+## Quick Start
 
-### 1) Clone and create virtual environment
+### Prerequisites
 
-```bash
-git clone https://github.com/alphaonelabs/Alpha-one-labs-AI-research-assisstant.git
-cd Alpha-one-labs-AI-research-assisstant
-python3 -m venv venv
-source venv/bin/activate
-```
+- [Node.js](https://nodejs.org/) ≥ 18
+- A free [Cloudflare account](https://dash.cloudflare.com/sign-up)
 
-### 2) Install dependencies
+### 1. Install Wrangler
 
 ```bash
-pip install -r requirements.txt
+npm install
+npx wrangler login
 ```
 
-### 3) Configure environment variables
+### 2. Run locally
 
 ```bash
-cp .env.example .env
+npm run dev
 ```
 
-Set in `.env`:
+Opens at `http://localhost:8787`.
 
-```env
-GEMINI_API_KEY=your_key_here
-```
-
-### 4) Run locally
+### 3. Deploy
 
 ```bash
-python -m app.server
+npm run deploy
 ```
-
-If module run does not work in your setup:
-
-```bash
-python app/server.py
-```
-
-Open: `http://127.0.0.1:5000`
 
 ---
 
-## 🔌 API Endpoints
+## API Endpoints
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/api/health` | Health check |
-| `POST` | `/api/upload` | Upload + index PDF |
-| `POST` | `/api/ask` | Ask a question |
-| `DELETE` | `/api/user/<user_id>` | Delete user indexed data |
-
-### `POST /api/upload`
-
-- Content-Type: `multipart/form-data`
-- Fields:
-  - `pdf` (file)
-  - `user_id` (string)
+| Method | Endpoint         | Description                    |
+|--------|-----------------|-------------------------------|
+| GET    | `/`             | Serves the frontend HTML       |
+| GET    | `/api/health`   | Health check                   |
+| POST   | `/api/ask`      | Ask a research question        |
+| POST   | `/api/summarize`| Summarise a paper              |
+| POST   | `/api/discover` | Discover relevant papers       |
+| POST   | `/api/review`   | Generate a literature review   |
 
 ### `POST /api/ask`
 
 ```json
-{
-  "question": "What is the main contribution?",
-  "user_id": "user_abc123"
-}
+{ "question": "What is transfer learning?", "context": "(optional excerpt)" }
 ```
+
+### `POST /api/summarize`
+
+```json
+{ "title": "...", "abstract": "...", "content": "..." }
+```
+
+At least one field required.
+
+### `POST /api/discover`
+
+```json
+{ "query": "graph neural networks", "fields": ["ML", "biology"], "limit": 10 }
+```
+
+### `POST /api/review`
+
+```json
+{ "topic": "self-supervised learning", "style": "comprehensive", "audience": "researchers" }
+```
+
+`style` options: `comprehensive`, `brief`, `systematic`
 
 ---
 
-## 🧪 Basic cURL Examples
+## Contributing
 
-```bash
-curl -X GET http://127.0.0.1:5000/api/health
-```
-
-```bash
-curl -X POST http://127.0.0.1:5000/api/upload \
-  -F "pdf=@/path/to/paper.pdf" \
-  -F "user_id=user_demo"
-```
-
-```bash
-curl -X POST http://127.0.0.1:5000/api/ask \
-  -H "Content-Type: application/json" \
-  -d '{"question":"Summarize section 2","user_id":"user_demo"}'
-```
-
-```bash
-curl -X DELETE http://127.0.0.1:5000/api/user/user_demo
-```
-
----
-
-## 🤝 Contributing
-
-We welcome contributions from the community.
-
-1. Fork the repository
-2. Create a feature branch  
-   `git checkout -b feat/your-change`
-3. Commit with clear messages
-4. Open a Pull Request with:
-   - Problem statement
-   - What changed
-   - Screenshots/logs (if UI or behavior changed)
+1. Fork the repo
+2. Create a branch: `git checkout -b feat/your-change`
+3. Commit and open a Pull Request with a clear description
 
 Please open an issue first for large changes.
 
 ---
 
-## ✅ PR Checklist
-
-- [ ] Code runs locally
-- [ ] Lint/tests pass
-- [ ] No hardcoded secrets
-- [ ] API/UI changes documented
-- [ ] Small, focused PR
-
----
-
-## 🛠 Troubleshooting
-
-- **Upload returns 404:** frontend must call `POST /api/upload` (not `/upload`).
-- **Upload says invalid file:** request field name must be `pdf` (not `file`).
-- **Ask fails:** ensure `user_id` and `question` are both sent.
-- **No model response:** verify `GEMINI_API_KEY` is set correctly.
-
----
-
-## 🔐 Security
-
-- Do not commit `.env` or API keys.
-- Rotate keys if exposed.
-- Use `DELETE /api/user/<user_id>` to remove user data.
-
----
-
-## 📄 License
+## License
 
 See [LICENSE](LICENSE).
 
 ---
 
-## 🙌 Maintained by
+## Maintained by
 
-**Alpha One Labs**  
-Open-source AI tooling for practical research workflows.
+**Alpha One Labs** — open-source AI tooling for practical research workflows.

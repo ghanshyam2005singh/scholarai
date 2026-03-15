@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ScholarAI | Alpha One Labs</title>
+  <meta name="description" content="AI-powered research assistant by Alpha One Labs. Discover papers, summarise research, and get grounded answers." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <a href="/" class="logo-pill" aria-label="Alpha One Labs Home">
+      <img src="/images/logo.png" alt="Alpha One Labs" class="logo-img"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" />
+      <span style="display:none;width:34px;height:34px;background:linear-gradient(135deg,#3b82f6,#14b8a6);border-radius:8px;align-items:center;justify-content:center;font-weight:800;font-size:.8rem;color:#fff;flex-shrink:0">A1</span>
+      <span class="brand-text">Alpha One Labs</span>
+    </a>
+
+    <div class="nav-links" role="navigation" aria-label="Main navigation">
+      <a href="#about">About</a>
+      <a href="#how-to">How to Use</a>
+      <a href="https://github.com/alphaonelabs/scholarai/issues" target="_blank" rel="noopener">Issues</a>
+      <a href="https://github.com/alphaonelabs/scholarai" target="_blank" rel="noopener">GitHub</a>
+      <a href="#workspace" class="nav-cta">Open App →</a>
+    </div>
+
+    <button id="menuBtn" class="menu-btn" aria-label="Toggle navigation" aria-expanded="false" aria-controls="mobileMenu">☰</button>
+  </nav>
+
+  <!-- Mobile menu -->
+  <div id="mobileMenu" class="mobile-menu hidden" role="menu">
+    <a href="#about">About</a>
+    <a href="#workspace">Open App</a>
+    <a href="#how-to">How to Use</a>
+    <a href="https://github.com/alphaonelabs/scholarai/issues" target="_blank" rel="noopener">Issues</a>
+    <a href="https://github.com/alphaonelabs/scholarai" target="_blank" rel="noopener">GitHub</a>
+  </div>
+
+  <div class="page">
+
+    <!-- ── Hero ───────────────────────────────────────────────── -->
+    <section class="hero" id="about" aria-labelledby="hero-heading">
+      <p class="hero-chip">Open Source · Privacy-First · Cloudflare Workers AI</p>
+      <h1 id="hero-heading">Scholar<span>AI</span></h1>
+      <p class="hero-desc">
+        An open-source research assistant by Alpha One Labs. Ask research questions, summarise papers, discover literature — powered by Cloudflare Workers AI.
+      </p>
+      <div class="hero-actions">
+        <a href="#workspace" class="btn">Open Workspace →</a>
+        <a href="#how-to"    class="btn btn-ghost">How to Use</a>
+      </div>
+    </section>
+
+    <!-- ── Workspace ──────────────────────────────────────────── -->
+    <section id="workspace" style="border-top:1px solid var(--panel-border)">
+      <div class="section-wrap">
+        <span class="section-label">Workspace</span>
+        <h2 class="section-title">Research Assistant</h2>
+
+        <!-- PDF Upload Panel -->
+        <div class="pdf-panel" id="pdfPanel">
+          <div class="pdf-header">
+            <div class="pdf-label">
+              <div class="pdf-icon" id="pdfIcon">📄</div>
+              <div>
+                <div id="pdfFileName">Upload your research paper</div>
+                <div style="font-size:.78rem;color:var(--muted);font-weight:400;margin-top:2px">
+                  PDF is read locally in your browser — nothing is uploaded to any server
+                </div>
+              </div>
+            </div>
+            <div class="pdf-actions">
+              <label for="pdfFileInput" class="btn btn-ghost btn-sm" style="cursor:pointer">
+                Choose PDF
+              </label>
+              <input type="file" id="pdfFileInput" accept=".pdf" aria-label="Upload PDF file" />
+              <button id="pdfClearBtn" class="btn btn-danger btn-sm hidden" type="button">Clear</button>
+            </div>
+          </div>
+
+          <div id="pdfMeta" class="pdf-meta hidden">
+            <span>📄 <strong id="pdfMetaName">—</strong></span>
+            <span>🗂 <span id="pdfMetaPages">—</span> pages</span>
+            <span>🔤 <span id="pdfMetaChars">—</span> characters extracted</span>
+            <span><span class="pdf-badge">Ready</span></span>
+          </div>
+
+          <div id="pdfInjectNote" class="pdf-inject-note hidden">
+            ✦ PDF text will be automatically used as context in Ask, Summarise &amp; Review tabs
+          </div>
+
+          <div class="status-bar" id="pdfStatus" aria-live="polite" style="margin-top:8px"></div>
+        </div>
+
+        <!-- Tab bar -->
+        <div class="tab-bar" role="tablist" aria-label="Research tools">
+          <button class="tab-btn active" role="tab" aria-selected="true"  aria-controls="tab-ask"      id="t-ask"      data-tab="ask">Ask</button>
+          <button class="tab-btn"        role="tab" aria-selected="false" aria-controls="tab-summarize" id="t-summarize" data-tab="summarize">Summarise</button>
+          <button class="tab-btn"        role="tab" aria-selected="false" aria-controls="tab-discover"  id="t-discover"  data-tab="discover">Discover</button>
+          <button class="tab-btn"        role="tab" aria-selected="false" aria-controls="tab-review"    id="t-review"    data-tab="review">Review</button>
+        </div>
+
+        <!-- Tab: Ask -->
+        <div class="tab-panel active card" id="tab-ask" role="tabpanel" aria-labelledby="t-ask">
+          <h3 class="card-title">Ask a Research Question</h3>
+          <label for="askQuestion" class="sr-only">Your question</label>
+          <textarea id="askQuestion" class="input" rows="4"
+            placeholder="e.g. What are the key differences between transformer and RNN architectures?"></textarea>
+          <label for="askContext" style="font-size:.83rem;color:var(--muted);display:block;margin-bottom:4px">
+            Context <span style="font-weight:400">(auto-filled from PDF if uploaded, or paste manually)</span>
+          </label>
+          <textarea id="askContext" class="input" rows="3"
+            placeholder="Upload a PDF above, or paste an excerpt here for a grounded answer…"></textarea>
+          <button id="askBtn" class="btn w-full" type="button">Ask ScholarAI</button>
+          <div class="status-bar" id="askStatus" aria-live="polite"></div>
+          <div style="margin-top:14px">
+            <div class="card-title" style="margin-bottom:10px">Answer</div>
+            <pre id="answerBox" aria-live="polite">No answer yet.</pre>
+          </div>
+        </div>
+
+        <!-- Tab: Summarise -->
+        <div class="tab-panel card" id="tab-summarize" role="tabpanel" aria-labelledby="t-summarize">
+          <h3 class="card-title">Summarise a Paper</h3>
+          <label for="sumTitle">Title <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+          <input type="text" id="sumTitle" class="input" placeholder="Paper title…" style="margin-top:6px" />
+          <label for="sumAbstract" style="margin-top:4px;display:block">Abstract <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+          <textarea id="sumAbstract" class="input" rows="4" placeholder="Paste the abstract…" style="margin-top:6px"></textarea>
+          <label for="sumContent" style="display:block">Full text <span style="color:var(--muted);font-weight:400">(auto-filled from PDF if uploaded, or paste manually)</span></label>
+          <textarea id="sumContent" class="input" rows="4" placeholder="Upload a PDF above, or paste full text here…" style="margin-top:6px"></textarea>
+          <button id="sumBtn" class="btn w-full" type="button">Summarise Paper</button>
+          <div class="status-bar" id="sumStatus" aria-live="polite"></div>
+          <div style="margin-top:14px">
+            <div class="card-title" style="margin-bottom:10px">Summary</div>
+            <pre id="sumResult" aria-live="polite" style="white-space:pre-wrap;background:#020617;padding:16px;border-radius:10px;border:1px solid #1e293b;min-height:110px;color:#e2e8f0;font:0.88rem/1.65 'JetBrains Mono',monospace;margin:0">No summary yet.</pre>
+          </div>
+        </div>
+
+        <!-- Tab: Discover -->
+        <div class="tab-panel card" id="tab-discover" role="tabpanel" aria-labelledby="t-discover">
+          <h3 class="card-title">Discover Papers</h3>
+          <label for="discQuery">Research query</label>
+          <input type="text" id="discQuery" class="input" placeholder="e.g. graph neural networks for drug discovery" style="margin-top:6px" />
+          <label for="discFields" style="display:block;margin-top:4px">Fields <span style="color:var(--muted);font-weight:400">(comma-separated, optional)</span></label>
+          <input type="text" id="discFields" class="input" placeholder="e.g. biology, machine learning" style="margin-top:6px" />
+          <button id="discBtn" class="btn w-full" type="button">Discover Papers</button>
+          <div class="status-bar" id="discStatus" aria-live="polite"></div>
+          <div style="margin-top:14px">
+            <div class="card-title" style="margin-bottom:10px">Results</div>
+            <pre id="discResult" aria-live="polite" style="white-space:pre-wrap;background:#020617;padding:16px;border-radius:10px;border:1px solid #1e293b;min-height:110px;color:#e2e8f0;font:0.88rem/1.65 'JetBrains Mono',monospace;margin:0">No results yet.</pre>
+          </div>
+        </div>
+
+        <!-- Tab: Review -->
+        <div class="tab-panel card" id="tab-review" role="tabpanel" aria-labelledby="t-review">
+          <h3 class="card-title">Generate a Literature Review</h3>
+          <label for="revTopic">Topic</label>
+          <input type="text" id="revTopic" class="input" placeholder="e.g. self-supervised learning in computer vision" style="margin-top:6px" />
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+            <div>
+              <label for="revStyle">Style</label>
+              <select id="revStyle" class="input" style="margin-top:6px;cursor:pointer">
+                <option value="comprehensive">Comprehensive</option>
+                <option value="brief">Brief</option>
+                <option value="systematic">Systematic</option>
+              </select>
+            </div>
+            <div>
+              <label for="revAudience">Audience</label>
+              <select id="revAudience" class="input" style="margin-top:6px;cursor:pointer">
+                <option value="researchers">Researchers</option>
+                <option value="graduate students">Graduate Students</option>
+                <option value="undergraduates">Undergraduates</option>
+                <option value="industry practitioners">Industry</option>
+              </select>
+            </div>
+          </div>
+          <button id="revBtn" class="btn w-full" type="button">Generate Review</button>
+          <div class="status-bar" id="revStatus" aria-live="polite"></div>
+          <div style="margin-top:14px">
+            <div class="card-title" style="margin-bottom:10px">Literature Review</div>
+            <pre id="revResult" aria-live="polite" style="white-space:pre-wrap;background:#020617;padding:16px;border-radius:10px;border:1px solid #1e293b;min-height:110px;color:#e2e8f0;font:0.88rem/1.65 'JetBrains Mono',monospace;margin:0">No review yet.</pre>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ── How to Use ──────────────────────────────────────────── -->
+    <section id="how-to">
+      <div class="section-wrap">
+        <span class="section-label">Guide</span>
+        <h2 class="section-title">How to Use ScholarAI</h2>
+        <div class="how-steps">
+          <div class="how-step"><p>Upload your PDF research paper using the panel above the tabs — it stays in your browser, nothing is sent to a server.</p></div>
+          <div class="how-step"><p>The text is extracted automatically. It will be injected as context into Ask, Summarise, and Review.</p></div>
+          <div class="how-step"><p>Pick a tool tab: Ask a question, Summarise, Discover new papers, or Generate a Review.</p></div>
+          <div class="how-step"><p>Hit the action button — the AI responds in seconds using your paper as context.</p></div>
+          <div class="how-step"><p>All processing is stateless — no data is stored between sessions.</p></div>
+        </div>
+      </div>
+    </section>
+
+  </div><!-- /page -->
+
+  <!-- ── Footer ─────────────────────────────────────────────── -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <span class="brand-text">Alpha One Labs</span>
+        <p>ScholarAI is an open-source AI research assistant powered by Cloudflare Workers AI. Built for privacy, designed for researchers.</p>
+      </div>
+      <nav class="footer-nav" aria-label="Footer navigation">
+        <p class="footer-nav-label">Navigation</p>
+        <a href="#about"     class="footer-link">About</a>
+        <a href="#workspace" class="footer-link">Workspace</a>
+        <a href="#how-to"    class="footer-link">How to Use</a>
+        <a href="https://github.com/alphaonelabs/scholarai/issues" target="_blank" rel="noopener" class="footer-link">Issues</a>
+        <a href="https://github.com/alphaonelabs/scholarai"        target="_blank" rel="noopener" class="footer-link">Contribute</a>
+      </nav>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2026 Alpha One Labs · ScholarAI · Open Source</p>
+      <div class="footer-bottom-links">
+        <a href="https://github.com/alphaonelabs/scholarai"                            target="_blank" rel="noopener">GitHub</a>
+        <a href="https://github.com/alphaonelabs/scholarai/blob/main/LICENSE"          target="_blank" rel="noopener">License</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- pdf.js for client-side PDF text extraction -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    // ── Mobile menu ──────────────────────────────────────────────
+    const menuBtn    = document.getElementById("menuBtn");
+    const mobileMenu = document.getElementById("mobileMenu");
+
+    menuBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const open = !mobileMenu.classList.contains("hidden");
+      mobileMenu.classList.toggle("hidden", open);
+      menuBtn.setAttribute("aria-expanded", String(!open));
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!mobileMenu.contains(e.target) && e.target !== menuBtn) {
+        mobileMenu.classList.add("hidden");
+        menuBtn.setAttribute("aria-expanded", "false");
+      }
+    });
+
+    // ── Tab switching ────────────────────────────────────────────
+    document.querySelectorAll(".tab-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".tab-btn").forEach(b => {
+          b.classList.remove("active");
+          b.setAttribute("aria-selected", "false");
+        });
+        document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+
+        btn.classList.add("active");
+        btn.setAttribute("aria-selected", "true");
+        document.getElementById(`tab-${btn.dataset.tab}`).classList.add("active");
+      });
+    });
+
+    // ── PDF extraction ───────────────────────────────────────────
+    // pdf.js worker setup (use CDN-matched version)
+    if (typeof pdfjsLib !== "undefined") {
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    }
+
+    // Holds the extracted text across the session
+    let pdfExtractedText = "";
+    const MAX_CONTEXT_CHARS = 12000; // ~3k tokens — safe for LLaMA context window
+
+    const pdfFileInput = document.getElementById("pdfFileInput");
+    const pdfPanel     = document.getElementById("pdfPanel");
+    const pdfIcon      = document.getElementById("pdfIcon");
+    const pdfFileName  = document.getElementById("pdfFileName");
+    const pdfMeta      = document.getElementById("pdfMeta");
+    const pdfMetaName  = document.getElementById("pdfMetaName");
+    const pdfMetaPages = document.getElementById("pdfMetaPages");
+    const pdfMetaChars = document.getElementById("pdfMetaChars");
+    const pdfClearBtn  = document.getElementById("pdfClearBtn");
+    const pdfInjectNote = document.getElementById("pdfInjectNote");
+    const pdfStatusEl  = document.getElementById("pdfStatus");
+
+    function setPdfStatus(msg, type = "") {
+      pdfStatusEl.textContent = msg;
+      pdfStatusEl.className   = "status-bar" + (type ? ` ${type}` : "");
+    }
+
+    async function extractPdfText(file) {
+      if (typeof pdfjsLib === "undefined") {
+        throw new Error("PDF.js failed to load. Please refresh and try again.");
+      }
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf         = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let fullText      = "";
+
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page    = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        const pageText = content.items.map(item => item.str).join(" ");
+        fullText += pageText + "\n\n";
+      }
+
+      return { text: fullText.trim(), pages: pdf.numPages };
+    }
+
+    function autoInjectPdf() {
+      // Inject truncated text into Ask context and Summarise content fields
+      const truncated = pdfExtractedText.slice(0, MAX_CONTEXT_CHARS);
+
+      const askCtx = document.getElementById("askContext");
+      const sumContent = document.getElementById("sumContent");
+
+      // Only overwrite if field is empty or was previously auto-filled
+      if (askCtx._autoFilled || !askCtx.value.trim()) {
+        askCtx.value      = truncated;
+        askCtx._autoFilled = true;
+      }
+      if (sumContent._autoFilled || !sumContent.value.trim()) {
+        sumContent.value      = truncated;
+        sumContent._autoFilled = true;
+      }
+    }
+
+    function clearPdf() {
+      pdfExtractedText = "";
+      pdfFileInput.value = "";
+
+      // Clear auto-filled fields
+      const askCtx = document.getElementById("askContext");
+      const sumContent = document.getElementById("sumContent");
+      if (askCtx._autoFilled)     { askCtx.value = "";     askCtx._autoFilled = false; }
+      if (sumContent._autoFilled) { sumContent.value = ""; sumContent._autoFilled = false; }
+
+      pdfPanel.classList.remove("has-pdf");
+      pdfIcon.classList.remove("loaded");
+      pdfIcon.textContent    = "📄";
+      pdfFileName.textContent = "Upload your research paper";
+      pdfMeta.classList.add("hidden");
+      pdfClearBtn.classList.add("hidden");
+      pdfInjectNote.classList.add("hidden");
+      setPdfStatus("");
+    }
+
+    pdfFileInput.addEventListener("change", async () => {
+      const file = pdfFileInput.files?.[0];
+      if (!file) return;
+
+      setPdfStatus("Extracting text from PDF…", "inf");
+      pdfFileName.textContent = file.name;
+
+      try {
+        const { text, pages } = await extractPdfText(file);
+
+        if (!text.trim()) {
+          setPdfStatus("Could not extract text — the PDF may be scanned/image-only.", "err");
+          return;
+        }
+
+        pdfExtractedText = text;
+
+        // Update UI
+        pdfPanel.classList.add("has-pdf");
+        pdfIcon.classList.add("loaded");
+        pdfIcon.textContent     = "✅";
+        pdfMetaName.textContent  = file.name.length > 40
+          ? file.name.slice(0, 37) + "…"
+          : file.name;
+        pdfMetaPages.textContent = pages;
+        pdfMetaChars.textContent = text.length.toLocaleString();
+        pdfMeta.classList.remove("hidden");
+        pdfClearBtn.classList.remove("hidden");
+        pdfInjectNote.classList.remove("hidden");
+        setPdfStatus(`✓ Extracted ${text.length.toLocaleString()} characters from ${pages} pages.`, "ok");
+
+        autoInjectPdf();
+
+      } catch (err) {
+        setPdfStatus("Error reading PDF: " + err.message, "err");
+        pdfIcon.textContent = "⚠️";
+      }
+    });
+
+    pdfClearBtn.addEventListener("click", clearPdf);
+
+    // Drag-and-drop support on the pdf panel
+    pdfPanel.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      pdfPanel.classList.add("dragging");
+    });
+
+    pdfPanel.addEventListener("dragleave", () => {
+      pdfPanel.classList.remove("dragging");
+    });
+
+    pdfPanel.addEventListener("drop", (e) => {
+      e.preventDefault();
+      pdfPanel.classList.remove("dragging");
+      const file = e.dataTransfer?.files?.[0];
+      if (!file) return;
+      if (!file.name.toLowerCase().endsWith(".pdf")) {
+        setPdfStatus("Please drop a PDF file.", "err");
+        return;
+      }
+      // Simulate file input selection
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      pdfFileInput.files = dt.files;
+      pdfFileInput.dispatchEvent(new Event("change"));
+    });
+
+    // ── API helper ───────────────────────────────────────────────
+    const API = "";  // same-origin; empty string = relative URLs
+
+    function setStatus(el, msg, type = "") {
+      el.textContent = msg;
+      el.className   = "status-bar" + (type ? ` ${type}` : "");
+    }
+
+    function setLoading(btn, loading, defaultText) {
+      if (loading) {
+        btn.disabled   = true;
+        btn.innerHTML  = `<span class="spinner"></span>Thinking…`;
+      } else {
+        btn.disabled   = false;
+        btn.textContent = defaultText;
+      }
+    }
+
+    async function callApi(endpoint, body) {
+      const res  = await fetch(`${API}/api/${endpoint}`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) throw new Error(data.error || "Request failed.");
+      return data;
+    }
+
+    // ── Ask ──────────────────────────────────────────────────────
+    document.getElementById("askBtn").addEventListener("click", async () => {
+      const btn      = document.getElementById("askBtn");
+      const statusEl = document.getElementById("askStatus");
+      const question = document.getElementById("askQuestion").value.trim();
+      // Use typed context first; fall back to extracted PDF text
+      const context  = document.getElementById("askContext").value.trim()
+                       || pdfExtractedText.slice(0, 12000);
+
+      if (!question) { setStatus(statusEl, "Please enter a question.", "err"); return; }
+
+      setLoading(btn, true, "Ask ScholarAI");
+      setStatus(statusEl, "Thinking…", "inf");
+      document.getElementById("answerBox").textContent = "…";
+
+      try {
+        const data = await callApi("ask", { question, context });
+        document.getElementById("answerBox").textContent = data.answer || "No answer returned.";
+        setStatus(statusEl, "Answer ready.", "ok");
+      } catch (e) {
+        document.getElementById("answerBox").textContent = "Error — please try again.";
+        setStatus(statusEl, e.message, "err");
+      } finally {
+        setLoading(btn, false, "Ask ScholarAI");
+      }
+    });
+
+    // ── Summarise ────────────────────────────────────────────────
+    document.getElementById("sumBtn").addEventListener("click", async () => {
+      const btn      = document.getElementById("sumBtn");
+      const statusEl = document.getElementById("sumStatus");
+      const title    = document.getElementById("sumTitle").value.trim();
+      const abstract = document.getElementById("sumAbstract").value.trim();
+      // Use typed content first; fall back to extracted PDF text
+      const content  = document.getElementById("sumContent").value.trim()
+                       || pdfExtractedText.slice(0, 12000);
+
+      if (!title && !abstract && !content) {
+        setStatus(statusEl, "Please upload a PDF or fill in at least one field.", "err");
+        return;
+      }
+
+      setLoading(btn, true, "Summarise Paper");
+      setStatus(statusEl, "Summarising…", "inf");
+      document.getElementById("sumResult").textContent = "…";
+
+      try {
+        const data = await callApi("summarize", { title, abstract, content });
+        document.getElementById("sumResult").textContent = data.summary || "No summary returned.";
+        setStatus(statusEl, "Summary ready.", "ok");
+      } catch (e) {
+        document.getElementById("sumResult").textContent = "Error — please try again.";
+        setStatus(statusEl, e.message, "err");
+      } finally {
+        setLoading(btn, false, "Summarise Paper");
+      }
+    });
+
+    // ── Discover ─────────────────────────────────────────────────
+    document.getElementById("discBtn").addEventListener("click", async () => {
+      const btn      = document.getElementById("discBtn");
+      const statusEl = document.getElementById("discStatus");
+      const query    = document.getElementById("discQuery").value.trim();
+      const fieldsRaw = document.getElementById("discFields").value.trim();
+      const fields   = fieldsRaw ? fieldsRaw.split(",").map(f => f.trim()).filter(Boolean) : [];
+
+      if (!query) { setStatus(statusEl, "Please enter a research query.", "err"); return; }
+
+      setLoading(btn, true, "Discover Papers");
+      setStatus(statusEl, "Searching…", "inf");
+      document.getElementById("discResult").textContent = "…";
+
+      try {
+        const data = await callApi("discover", { query, fields, limit: 10 });
+        document.getElementById("discResult").textContent = data.results || "No results returned.";
+        setStatus(statusEl, "Results ready.", "ok");
+      } catch (e) {
+        document.getElementById("discResult").textContent = "Error — please try again.";
+        setStatus(statusEl, e.message, "err");
+      } finally {
+        setLoading(btn, false, "Discover Papers");
+      }
+    });
+
+    // ── Review ───────────────────────────────────────────────────
+    document.getElementById("revBtn").addEventListener("click", async () => {
+      const btn      = document.getElementById("revBtn");
+      const statusEl = document.getElementById("revStatus");
+      const topic    = document.getElementById("revTopic").value.trim();
+      const style    = document.getElementById("revStyle").value;
+      const audience = document.getElementById("revAudience").value;
+      // Include PDF text as extra context if available
+      const context  = pdfExtractedText.slice(0, 12000) || "";
+
+      if (!topic) { setStatus(statusEl, "Please enter a topic.", "err"); return; }
+
+      setLoading(btn, true, "Generate Review");
+      setStatus(statusEl, "Generating…", "inf");
+      document.getElementById("revResult").textContent = "…";
+
+      try {
+        const data = await callApi("review", { topic, style, audience, context });
+        document.getElementById("revResult").textContent = data.review || "No review returned.";
+        setStatus(statusEl, "Review ready.", "ok");
+      } catch (e) {
+        document.getElementById("revResult").textContent = "Error — please try again.";
+        setStatus(statusEl, e.message, "err");
+      } finally {
+        setLoading(btn, false, "Generate Review");
+      }
+    });
+  </script>
+</body>
+</html>
