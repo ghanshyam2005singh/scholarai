@@ -25,17 +25,26 @@ scholarai/
 ### Prerequisites
 
 - A free [Cloudflare account](https://dash.cloudflare.com/sign-up)
+- [Node.js and npm](https://nodejs.org/)
+
+Install Wrangler locally in the project before running the commands below:
+
+```bash
+npm i -D wrangler@latest
+```
+
+See Cloudflare's [Wrangler installation guide](https://developers.cloudflare.com/workers/wrangler/install-and-update/) for installation and update details.
 
 ### 1. Log in to Cloudflare
 
 ```bash
-wrangler login
+npx wrangler login
 ```
 
 ### 2. Run locally
 
 ```bash
-wrangler dev
+npx wrangler dev
 ```
 
 Opens at `http://localhost:8787`.
@@ -43,7 +52,7 @@ Opens at `http://localhost:8787`.
 ### 3. Deploy
 
 ```bash
-wrangler deploy
+npx wrangler deploy
 ```
 
 ---

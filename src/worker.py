@@ -98,9 +98,12 @@ async def parse_body(request) -> dict:
     if not text:
         return {}
     try:
-        return json.loads(text)
-    except json.JSONDecodeError:
-        raise InvalidJSONError("Invalid JSON body")
+        body = json.loads(text)
+    except ValueError as exc:
+        raise InvalidJSONError("Invalid JSON body") from exc
+    if not isinstance(body, dict):
+        raise InvalidJSONError("JSON body must be an object")
+    return body
 
 
 # ---------------------------------------------------------------------------
