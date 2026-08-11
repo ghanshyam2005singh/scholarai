@@ -5,15 +5,18 @@ Uses JS interop (from js import ...) for Response, Headers, URL.
 """
 
 import json
+import logging
 from js import Response, Headers, URL
 from pyodide.ffi import to_js
 from workers import WorkerEntrypoint
+
+logger = logging.getLogger("scholarai")
 
 
 # ---------------------------------------------------------------------------
 # Config
 # ---------------------------------------------------------------------------
-AI_MODEL   = "@cf/meta/llama-3.1-8b-instruct"
+AI_MODEL   = "@cf/meta/llama-3.1-8b-instruct-fp8"
 MAX_TOKENS = 1024
 
 
@@ -86,12 +89,18 @@ async def run_ai(env, system_prompt: str, user_prompt: str) -> str:
 # Body parser
 # ---------------------------------------------------------------------------
 
+class InvalidJSONError(Exception):
+    pass
+
+
 async def parse_body(request) -> dict:
-    try:
-        text = await request.text()
-        return json.loads(text) if text else {}
-    except Exception:
+    text = await request.text()
+    if not text:
         return {}
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        raise InvalidJSONError("Invalid JSON body")
 
 
 # ---------------------------------------------------------------------------
@@ -101,21 +110,28 @@ async def parse_body(request) -> dict:
 _HTML_CACHE: str | None = None
 
 
+_FALLBACK_HTML = (
+    "<!doctype html><html><body>"
+    "<h1>ScholarAI</h1>"
+    "<p>The frontend is temporarily unavailable. Please try again later.</p>"
+    "</body></html>"
+)
+
+
 async def get_html(env) -> str:
     global _HTML_CACHE
     if _HTML_CACHE:
         return _HTML_CACHE
     try:
         resp = await env.ASSETS.fetch("http://assets/index.html")
+        if not resp.ok:
+            logger.error("ASSETS fetch returned status %s", resp.status)
+            return _FALLBACK_HTML
         _HTML_CACHE = await resp.text()
         return _HTML_CACHE
-    except Exception as e:
-        return (
-            "<!doctype html><html><body>"
-            "<h1>ScholarAI</h1>"
-            f"<p>Frontend load error: {e}</p>"
-            "</body></html>"
-        )
+    except Exception:
+        logger.exception("Failed to load frontend assets")
+        return _FALLBACK_HTML
 
 
 # ---------------------------------------------------------------------------
@@ -146,8 +162,9 @@ async def handle_ask(request, env) -> Response:
     try:
         answer = await run_ai(env, system_prompt, user_prompt)
         return json_resp({"ok": True, "answer": answer})
-    except Exception as e:
-        return error_resp(f"AI error: {e}", 500)
+    except Exception:
+        logger.exception("AI request failed")
+        return error_resp("AI request failed. Please try again.", 500)
 
 
 async def handle_summarize(request, env) -> Response:
@@ -160,9 +177,12 @@ async def handle_summarize(request, env) -> Response:
         return error_resp("At least one of 'title', 'abstract', or 'content' is required.")
 
     parts = []
-    if title:    parts.append(f"Title: {title}")
-    if abstract: parts.append(f"Abstract: {abstract}")
-    if content:  parts.append(f"Content:\n{content[:10000]}")
+    if title:
+        parts.append(f"Title: {title}")
+    if abstract:
+        parts.append(f"Abstract: {abstract}")
+    if content:
+        parts.append(f"Content:\n{content[:10000]}")
 
     system_prompt = (
         "You are ScholarAI, an expert at summarising research papers. "
@@ -174,36 +194,49 @@ async def handle_summarize(request, env) -> Response:
     try:
         summary = await run_ai(env, system_prompt, user_prompt)
         return json_resp({"ok": True, "title": title, "summary": summary})
-    except Exception as e:
-        return error_resp(f"AI error: {e}", 500)
+    except Exception:
+        logger.exception("AI request failed")
+        return error_resp("AI request failed. Please try again.", 500)
 
 
 async def handle_discover(request, env) -> Response:
     body   = await parse_body(request)
     query  = str(body.get("query") or "").strip()
     fields = body.get("fields") or []
-    limit  = int(body.get("limit") or 10)
+    limit  = body.get("limit", 10)
 
     if not query:
         return error_resp("'query' is required.")
 
+    if not isinstance(fields, list) or not all(isinstance(f, str) for f in fields):
+        return error_resp("'fields' must be a list of strings.")
+
+    if isinstance(limit, bool) or not isinstance(limit, int) or not (1 <= limit <= 25):
+        return error_resp("'limit' must be an integer between 1 and 25.")
+
     field_ctx     = f" in the fields of {', '.join(fields)}" if fields else ""
     system_prompt = (
         "You are ScholarAI, an expert academic research assistant. "
-        "Suggest relevant papers, key concepts, and research directions."
+        "You do not have access to a paper database, so you must never invent "
+        "specific paper titles, authors, or publication years — doing so risks "
+        "fabricated citations. Instead, help the researcher navigate the "
+        "literature via concepts and search strategies."
     )
     user_prompt = (
-        f"Suggest up to {limit} relevant academic papers{field_ctx} for:\n\n"
-        f"Query: {query}\n\n"
-        "For each paper: title, likely authors/year, one-line relevance. "
-        "Then list 3-5 key concepts and 2-3 related queries."
+        f"For the research query{field_ctx}: \"{query}\"\n\n"
+        f"Suggest up to {limit} well-known research directions or subtopics "
+        "relevant to this query (not specific papers). "
+        "Then list 3-5 key concepts and 2-3 refined search queries the "
+        "researcher could use to find real papers via Google Scholar or "
+        "Semantic Scholar."
     )
 
     try:
         results = await run_ai(env, system_prompt, user_prompt)
         return json_resp({"ok": True, "query": query, "results": results})
-    except Exception as e:
-        return error_resp(f"AI error: {e}", 500)
+    except Exception:
+        logger.exception("AI request failed")
+        return error_resp("AI request failed. Please try again.", 500)
 
 
 async def handle_review(request, env) -> Response:
@@ -230,8 +263,9 @@ async def handle_review(request, env) -> Response:
     try:
         review = await run_ai(env, system_prompt, user_prompt)
         return json_resp({"ok": True, "topic": topic, "style": style, "review": review})
-    except Exception as e:
-        return error_resp(f"AI error: {e}", 500)
+    except Exception:
+        logger.exception("AI request failed")
+        return error_resp("AI request failed. Please try again.", 500)
 
 
 # ---------------------------------------------------------------------------
@@ -271,4 +305,7 @@ class Default(WorkerEntrypoint):
         if handler is None:
             return error_resp(f"Not found: {method} {path}", 404)
 
-        return await handler(request, self.env)
+        try:
+            return await handler(request, self.env)
+        except InvalidJSONError as e:
+            return error_resp(str(e), 400)

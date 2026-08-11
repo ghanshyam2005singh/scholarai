@@ -1,0 +1,14 @@
+name = "scholarai"
+main = "src/worker.py"
+compatibility_date = "2025-11-02"
+compatibility_flags = ["python_workers", "python_dedicated_snapshot"]
+
+[ai]
+binding = "AI"
+
+[assets]
+binding = "ASSETS"
+directory = "./static"
+
+[observability]
+enabled = true

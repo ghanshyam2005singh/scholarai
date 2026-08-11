@@ -2,20 +2,19 @@
 
 Open-source AI-powered research assistant by Alpha One Labs.
 Ask research questions, summarise papers, discover literature, and generate reviews —
-all powered by **Cloudflare Workers AI** (`@cf/meta/llama-3.1-8b-instruct`).
+all powered by **Cloudflare Workers AI** (`@cf/meta/llama-3.1-8b-instruct-fp8`).
 
 ---
 
 ## Project Structure
 
-```
+```text
 scholarai/
 ├── src/
 │   └── worker.py       # Single Python Worker — routing + AI logic
 ├── static/
 │   └── index.html      # Full frontend (HTML/CSS/JS, no build step)
-├── wrangler.jsonc       # Cloudflare Workers config
-├── package.json         # npm scripts for Wrangler CLI
+├── wrangler.toml        # Cloudflare Workers config
 └── README.md
 ```
 
@@ -25,20 +24,18 @@ scholarai/
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) ≥ 18
 - A free [Cloudflare account](https://dash.cloudflare.com/sign-up)
 
-### 1. Install Wrangler
+### 1. Log in to Cloudflare
 
 ```bash
-npm install
-npx wrangler login
+wrangler login
 ```
 
 ### 2. Run locally
 
 ```bash
-npm run dev
+wrangler dev
 ```
 
 Opens at `http://localhost:8787`.
@@ -46,7 +43,7 @@ Opens at `http://localhost:8787`.
 ### 3. Deploy
 
 ```bash
-npm run deploy
+wrangler deploy
 ```
 
 ---

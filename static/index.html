@@ -28,17 +28,17 @@
       <a href="#workspace" class="nav-cta">Open App →</a>
     </div>
 
-    <button id="menuBtn" class="menu-btn" aria-label="Toggle navigation" aria-expanded="false" aria-controls="mobileMenu">☰</button>
+    <button id="menuBtn" type="button" class="menu-btn" aria-label="Toggle navigation" aria-expanded="false" aria-controls="mobileMenu">☰</button>
   </nav>
 
   <!-- Mobile menu -->
-  <div id="mobileMenu" class="mobile-menu hidden" role="menu">
+  <nav id="mobileMenu" class="mobile-menu hidden" aria-label="Mobile navigation">
     <a href="#about">About</a>
     <a href="#workspace">Open App</a>
     <a href="#how-to">How to Use</a>
     <a href="https://github.com/alphaonelabs/scholarai/issues" target="_blank" rel="noopener">Issues</a>
     <a href="https://github.com/alphaonelabs/scholarai" target="_blank" rel="noopener">GitHub</a>
-  </div>
+  </nav>
 
   <div class="page">
 
@@ -98,10 +98,10 @@
 
         <!-- Tab bar -->
         <div class="tab-bar" role="tablist" aria-label="Research tools">
-          <button class="tab-btn active" role="tab" aria-selected="true"  aria-controls="tab-ask"      id="t-ask"      data-tab="ask">Ask</button>
-          <button class="tab-btn"        role="tab" aria-selected="false" aria-controls="tab-summarize" id="t-summarize" data-tab="summarize">Summarise</button>
-          <button class="tab-btn"        role="tab" aria-selected="false" aria-controls="tab-discover"  id="t-discover"  data-tab="discover">Discover</button>
-          <button class="tab-btn"        role="tab" aria-selected="false" aria-controls="tab-review"    id="t-review"    data-tab="review">Review</button>
+          <button class="tab-btn active" type="button" role="tab" aria-selected="true"  aria-controls="tab-ask"      id="t-ask"      data-tab="ask">Ask</button>
+          <button class="tab-btn"        type="button" role="tab" aria-selected="false" aria-controls="tab-summarize" id="t-summarize" data-tab="summarize">Summarise</button>
+          <button class="tab-btn"        type="button" role="tab" aria-selected="false" aria-controls="tab-discover"  id="t-discover"  data-tab="discover">Discover</button>
+          <button class="tab-btn"        type="button" role="tab" aria-selected="false" aria-controls="tab-review"    id="t-review"    data-tab="review">Review</button>
         </div>
 
         <!-- Tab: Ask -->
@@ -233,7 +233,9 @@
   </footer>
 
   <!-- pdf.js for client-side PDF text extraction -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"
+          integrity="sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e"
+          crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script>
     // ── Mobile menu ──────────────────────────────────────────────
     const menuBtn    = document.getElementById("menuBtn");
@@ -254,17 +256,35 @@
     });
 
     // ── Tab switching ────────────────────────────────────────────
-    document.querySelectorAll(".tab-btn").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        document.querySelectorAll(".tab-btn").forEach(b => {
-          b.classList.remove("active");
-          b.setAttribute("aria-selected", "false");
-        });
-        document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+    const tabBtns = Array.from(document.querySelectorAll(".tab-btn"));
 
-        btn.classList.add("active");
-        btn.setAttribute("aria-selected", "true");
-        document.getElementById(`tab-${btn.dataset.tab}`).classList.add("active");
+    function activateTab(btn) {
+      tabBtns.forEach(b => {
+        b.classList.remove("active");
+        b.setAttribute("aria-selected", "false");
+        b.tabIndex = -1;
+      });
+      document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+
+      btn.classList.add("active");
+      btn.setAttribute("aria-selected", "true");
+      btn.tabIndex = 0;
+      document.getElementById(`tab-${btn.dataset.tab}`).classList.add("active");
+    }
+
+    tabBtns.forEach((btn, i) => {
+      btn.tabIndex = btn.classList.contains("active") ? 0 : -1;
+      btn.addEventListener("click", () => activateTab(btn));
+      btn.addEventListener("keydown", (e) => {
+        if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return;
+        e.preventDefault();
+        let next;
+        if (e.key === "ArrowLeft")  next = (i - 1 + tabBtns.length) % tabBtns.length;
+        if (e.key === "ArrowRight") next = (i + 1) % tabBtns.length;
+        if (e.key === "Home")       next = 0;
+        if (e.key === "End")        next = tabBtns.length - 1;
+        tabBtns[next].focus();
+        activateTab(tabBtns[next]);
       });
     });
 
@@ -437,12 +457,25 @@
       }
     }
 
+    const API_TIMEOUT_MS = 30000;
+
     async function callApi(endpoint, body) {
-      const res  = await fetch(`${API}/api/${endpoint}`, {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify(body),
-      });
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+      let res;
+      try {
+        res = await fetch(`${API}/api/${endpoint}`, {
+          method:  "POST",
+          headers: { "Content-Type": "application/json" },
+          body:    JSON.stringify(body),
+          signal:  controller.signal,
+        });
+      } catch (e) {
+        if (e.name === "AbortError") throw new Error("Request timed out. Please try again.");
+        throw e;
+      } finally {
+        clearTimeout(timeout);
+      }
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.ok) throw new Error(data.error || "Request failed.");
       return data;
